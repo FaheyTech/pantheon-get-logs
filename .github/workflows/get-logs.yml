@@ -29,6 +29,10 @@ jobs:
       with:
         key: ${{ secrets.SSH_KEY }}
         config: |
+          Host *
+            StrictHostKeyChecking=no
+            PasswordAuthentication no
+            PubkeyAuthentication yes
           Host *.drush.in
             StrictHostKeyChecking no
         known_hosts: |
