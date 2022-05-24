@@ -46,16 +46,17 @@ jobs:
         vendor/bin/terminus auth:login --machine-token=${{ secrets.PANTHEON_MACHINE_TOKEN }}
         git clone https://github.com/twfahey1/terminus-get-logs ~/.terminus/plugins/terminus-get-logs
         git clone https://github.com/twfahey1/terminus-rsync-plugin.git ~/.terminus/plugins/terminus-rsync-plugin
-    - name: Get logs and run GoAccess
-      id: runbackstop
+    - name: Get logs
+      id: get_logs
       env:
         site_name: ${{ github.event.inputs.site_name }}
         site_environment: ${{ github.event.inputs.site_environment }}
       run: |
         pwd
         ls -la
-        cd ${{ github.workspace }}
+        cd ${{ github.workspace }}        
         terminus get-logs $site_name.$site_environment
+        gzip -d $site_name/$site_environment/*/nginx-access*.gz
     - name: Run the report build with GoAccess via Docker
       uses: addnab/docker-run-action@v3
       with:
