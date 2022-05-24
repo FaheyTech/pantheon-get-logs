@@ -15,3 +15,6 @@ This utility pulls all nginx logs for a given Pantheon site, generate an HTML re
 - Head to the "Actions" tab on your fork.
 - Select the Action on the left hand side.
 - You can provide the inputs, and it will run. Check the progress in the Actions tab.
+
+![Screenshot of running action](static/Actions_%C2%B7_FaheyTech_pantheon-get-logs.png)
+
