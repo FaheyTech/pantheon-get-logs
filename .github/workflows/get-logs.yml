@@ -21,7 +21,7 @@ on:
         type: boolean
         required: false
 jobs:
-  Get the logs, generate the report, and (maybe) upload it and (maybe) notify:
+  get-logs:
     runs-on: ubuntu-latest
     steps:  
     - uses: actions/checkout@v2
