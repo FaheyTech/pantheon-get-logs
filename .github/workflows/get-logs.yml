@@ -1,0 +1,89 @@
+name: Get Logs from a Pantheon Site.
+on:
+  workflow_dispatch:
+    inputs:
+      site_name:
+        description: 'The site to get logs for, e.g. mysite'
+        required: true
+      site_environment:
+        description: 'The environment to get logs for, e.g. live'
+        required: true
+      upload_results:
+        description: 'Whether or not to upload the results'
+        type: boolean
+        required: false
+      upload_site_name:
+        description: 'The Pantheon site and environment to upload the results to, e.g. my-results. Can also use the UUID of the site instead of the machine name.'
+      upload_site_env:
+        description: 'The Pantheon site and environment to upload the results to, e.g. live.'
+      slack_notification:
+        description: 'Whether or not to send a Slack notification'
+        type: boolean
+        required: false
+jobs:
+  run-vrt:
+    runs-on: ubuntu-latest
+    steps:  
+    - uses: actions/checkout@v2
+    - uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH_KEY }}
+        config: |
+          Host *.drush.in
+            StrictHostKeyChecking no
+        known_hosts: |
+          127.0.0.1
+    - name: Install terminus and plugins
+      run: |
+        mkdir -p /tmp/terminus
+        cd /tmp/terminus
+        composer require pantheon-systems/terminus:2.6.1
+        echo "/tmp/terminus/vendor/bin/" >> $GITHUB_PATH
+        vendor/bin/terminus auth:login --machine-token=${{ secrets.PANTHEON_MACHINE_TOKEN }}
+        git clone https://github.com/twfahey1/terminus-get-logs ~/.terminus/plugins/terminus-get-logs
+        git clone https://github.com/twfahey1/terminus-rsync-plugin.git ~/.terminus/plugins/terminus-rsync-plugin
+    - name: Get logs and run GoAccess
+      id: runbackstop
+      env:
+        site_name: ${{ github.event.inputs.site_name }}
+        site_environment: ${{ github.event.inputs.site_environment }}
+      run: |
+        pwd
+        ls -la
+        cd ${{ github.workspace }}
+        terminus get-logs $site_name.$site_environment
+    - name: Run the report build with GoAccess via Docker
+      uses: addnab/docker-run-action@v3
+      with:
+        image: twfahey1/pantheon-goaccess:latest
+        options: -v ${{ github.workspace }}:/var/www
+        run: | 
+            pwd
+            ls -la
+            goaccess -p /usr/local/etc/goaccess/goaccess.conf -o /var/www/report.html /var/www/${{ github.event.inputs.site_name }}/${{ github.event.inputs.site_environment }}/*/nginx-access*.log*
+    - name: Upload results to Pantheon site and notify via Slack
+      if: ${{ github.event.inputs.upload_results == true }}
+      id: upload_results
+      env:
+        site_name: ${{ github.event.inputs.site_name }}
+        site_environment: ${{ github.event.inputs.site_environment }}
+        upload_site_name: ${{ github.event.inputs.upload_site_name }}
+        upload_site_env: ${{ github.event.inputs.upload_site_env }}
+      run: |
+        jobID=$(cat /proc/sys/kernel/random/uuid)
+        echo '::set-output name=jobID::'$jobID''
+        echo "Going to upload the report into public files folder of the jobID - $jobID to $upload_site_name.$upload_site_env"
+        sftp -o Port=2222 $upload_site_env.$upload_site_name@appserver.$upload_site_env.$upload_site_name.drush.in <<EOF
+        -mkdir files/$jobID
+        put -r report.html files/$jobID
+        EOF
+    - name: Send Slack notification
+      if: ${{ github.event.inputs.slack_notification == true }}
+      env:
+        upload_site_name: ${{ github.event.inputs.upload_site_name }}
+        upload_site_env: ${{ github.event.inputs.upload_site_env }}
+        jobID: ${{ steps.upload_results.outputs.jobID }}
+        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        data='{"text": "Log analysis completed for '$site_name.$site_environment'. See results: https://'$upload_site_env'-'$upload_site_name'.pantheonsite.io/sites/default/files/'$jobID'/report.html"}'
+        curl -s -X POST -H 'Content-type: application/json' --data "$data" $webhook_url
