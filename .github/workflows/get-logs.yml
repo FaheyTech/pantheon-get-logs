@@ -9,7 +9,7 @@ on:
         description: 'The environment to get logs for, e.g. live'
         required: true
       upload_results:
-        description: 'Whether or not to upload the results'
+        description: 'Upload the results to a Pantheon site'
         type: boolean
         required: false
       upload_site_name:
@@ -17,11 +17,11 @@ on:
       upload_site_env:
         description: 'The Pantheon site and environment to upload the results to, e.g. live.'
       slack_notification:
-        description: 'Whether or not to send a Slack notification'
+        description: 'Send a Slack notification (requires SLACK_WEBHOOK_URL secret configured)'
         type: boolean
         required: false
 jobs:
-  run-vrt:
+  Get the logs, generate the report, and (maybe) upload it and (maybe) notify:
     runs-on: ubuntu-latest
     steps:  
     - uses: actions/checkout@v2
@@ -71,11 +71,12 @@ jobs:
         upload_site_env: ${{ github.event.inputs.upload_site_env }}
       run: |
         jobID=$(cat /proc/sys/kernel/random/uuid)
-        echo '::set-output name=jobID::'$jobID''
-        echo "Going to upload the report into public files folder of the jobID - $jobID to $upload_site_name.$upload_site_env"
-        sftp -o Port=2222 $upload_site_env.$upload_site_name@appserver.$upload_site_env.$upload_site_name.drush.in <<EOF
-        -mkdir files/$jobID
-        put -r report.html files/$jobID
+        echo "Going to upload the report into public files folder of the jobID - $jobID to $pantheon_site_uuid.$env_to_upload_to"
+        sftp -o Port=2222 $env_to_upload_to.$pantheon_site_uuid@appserver.$env_to_upload_to.$pantheon_site_uuid.drush.in <<EOF
+        -mkdir files/goaccess-reports
+        -mkdir files/goaccess-reports/$date_to_get
+        -mkdir files/goaccess-reports/$date_to_get/$jobID
+        put -r report.html files/goaccess-reports/$date_to_get/$jobID
         EOF
     - name: Send Slack notification
       if: ${{ github.event.inputs.slack_notification == true }}
