@@ -14,7 +14,21 @@ This utility pulls all nginx logs for a given Pantheon site, generate an HTML re
 ## Usage
 - Head to the "Actions" tab on your fork.
 - Select the Action on the left hand side.
+- Hit "Run workflow" on the right hand side.
 - You can provide the inputs, and it will run. Check the progress in the Actions tab.
 
 ![Screenshot of running action](static/Actions_%C2%B7_FaheyTech_pantheon-get-logs.png)
+
+Keep in mind - You can also trigger these programmatically with the Github API! The possibilities are endless! You essentially send a JSON payload with your inputs, e.g.
+```
+{
+    "ref": "master",
+    "inputs": {
+        "site_name": "whatever-site",
+        "site_environment": "live",
+        ...etc
+```
+
+For more, check out [the Github Workflow API docs.](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)
+
 
