@@ -56,8 +56,6 @@ jobs:
         site_name: ${{ github.event.inputs.site_name }}
         site_environment: ${{ github.event.inputs.site_environment }}
       run: |
-        pwd
-        ls -la
         cd ${{ github.workspace }}        
         terminus get-logs $site_name.$site_environment
         gzip -d $site_name/$site_environment/*/nginx-access*.gz
@@ -67,8 +65,6 @@ jobs:
         image: twfahey1/pantheon-goaccess:latest
         options: -v ${{ github.workspace }}:/var/www
         run: | 
-            pwd
-            ls -la
             goaccess -p /usr/local/etc/goaccess/goaccess.conf -o /var/www/report.html /var/www/${{ github.event.inputs.site_name }}/${{ github.event.inputs.site_environment }}/*/nginx-access*.log*
     - name: Upload results to Pantheon site and notify via Slack
       if: ${{ github.event.inputs.upload_results == 'true' }}
