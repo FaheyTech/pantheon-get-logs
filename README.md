@@ -1,6 +1,8 @@
 # pantheon-get-logs
 This utility pulls all nginx logs for a given Pantheon site, generate an HTML report, and upload that report to a Pantheon site to be able to view it in a browser.
 
+![Screenshot of html report](static/Server-Statistics.png)
+
 - Triggered via workflow_dispatch.
 - Uses GoAccess to generate an HTML report.
 
