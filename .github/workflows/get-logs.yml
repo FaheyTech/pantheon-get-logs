@@ -13,8 +13,12 @@ on:
         type: boolean
         required: false
       upload_site_name:
+        type: string
+        required: false
         description: 'The Pantheon site and environment to upload the results to, e.g. my-results. Can also use the UUID of the site instead of the machine name.'
       upload_site_env:
+        type: string
+        required: false
         description: 'The Pantheon site and environment to upload the results to, e.g. live.'
       slack_notification:
         description: 'Send a Slack notification (requires SLACK_WEBHOOK_URL secret configured)'
@@ -67,7 +71,7 @@ jobs:
             ls -la
             goaccess -p /usr/local/etc/goaccess/goaccess.conf -o /var/www/report.html /var/www/${{ github.event.inputs.site_name }}/${{ github.event.inputs.site_environment }}/*/nginx-access*.log*
     - name: Upload results to Pantheon site and notify via Slack
-      if: ${{ github.event.inputs.upload_results == 1 }}
+      if: ${{ github.event.inputs.upload_results == true }}
       id: upload_results
       env:
         site_name: ${{ github.event.inputs.site_name }}
@@ -84,7 +88,7 @@ jobs:
         put -r report.html files/goaccess-reports/$date_to_get/$jobID
         EOF
     - name: Send Slack notification
-      if: ${{ github.event.inputs.slack_notification == 1 }}
+      if: ${{ github.event.inputs.slack_notification == true }}
       env:
         upload_site_name: ${{ github.event.inputs.upload_site_name }}
         upload_site_env: ${{ github.event.inputs.upload_site_env }}
